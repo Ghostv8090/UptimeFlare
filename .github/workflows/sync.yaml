@@ -29,8 +29,11 @@ jobs:
 
       - name: Current config
         run: |
-          cat uptime.config.ts
-          cp uptime.config.ts /tmp/origin.config.ts
+          mkdir -p /tmp/uptimeflare-local/.github/workflows /tmp/uptimeflare-local/worker /tmp/uptimeflare-local/docs
+          cp uptime.config.ts wrangler.toml /tmp/uptimeflare-local/
+          cp worker/wrangler.toml /tmp/uptimeflare-local/worker/
+          cp docs/github-manual-deploy.zh-CN.md /tmp/uptimeflare-local/docs/
+          cp .github/workflows/deploy.yml .github/workflows/sync.yaml /tmp/uptimeflare-local/.github/workflows/
 
       - name: Sync upstream changes
         id: sync
@@ -45,13 +48,12 @@ jobs:
           # Clean current repo and update
           git rm -rf '*'
           cp -r /tmp/latest/. .
-          cp /tmp/origin.config.ts uptime.config.ts
+          cp /tmp/uptimeflare-local/uptime.config.ts /tmp/uptimeflare-local/wrangler.toml .
+          cp /tmp/uptimeflare-local/worker/wrangler.toml worker/wrangler.toml
+          cp /tmp/uptimeflare-local/docs/github-manual-deploy.zh-CN.md docs/
+          cp /tmp/uptimeflare-local/.github/workflows/deploy.yml /tmp/uptimeflare-local/.github/workflows/sync.yaml .github/workflows/
           git add .
-          git commit -m "Sync latest code from upstream"
-          git push
-
-      - name: Trigger deployment
-        if: ${{ inputs.override-token == '' }}
-        uses: benc-uk/workflow-dispatch@v1
-        with:
-          workflow: deploy.yml
+          if ! git diff --cached --quiet; then
+            git commit -m "Sync latest code from upstream"
+            git push
+          fi
